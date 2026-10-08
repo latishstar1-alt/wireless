@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wi-Fi Transmission Using Optics — Li-Fi Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080b12;
+  --bg-elev:#0d121c;
+  --panel:#111826;
+  --panel-2:#151d2e;
+  --border:#212c40;
+  --border-soft:#1a2233;
+  --text:#e9edf6;
+  --text-dim:#8a96ac;
+  --text-faint:#5b6579;
+  --digital:#9b8cff;
+  --electrical:#2bd9b0;
+  --optical:#ffb238;
+  --noise:#ff5b78;
+  --received:#4dc8ff;
+  --error:#ff3f63;
+  --success:#38d97a;
+  --radius:14px;
+  --mono:'IBM Plex Mono', monospace;
+  --sans:'Space Grotesk', sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(155,140,255,0.08), transparent 60%),
+    radial-gradient(1000px 500px at 90% 10%, rgba(255,178,56,0.06), transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  line-height:1.5;
+  min-height:100vh;
+}
+.bg-grid{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size:42px 42px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 20%, black, transparent 90%);
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 100px;}
+ 
+/* ---------- HERO ---------- */
+header.hero{padding:56px 0 34px; text-align:left; border-bottom:1px solid var(--border-soft);}
+.eyebrow-row{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--optical); box-shadow:0 0 12px var(--optical); animation:blink 1.6s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+.eyebrow-row span{font-family:var(--mono); font-size:12.5px; color:var(--text-dim); letter-spacing:.02em;}
+h1.title{font-size:clamp(30px,5vw,50px); font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; line-height:1.05;
+  background:linear-gradient(100deg,#f2f4fb 30%, var(--optical) 85%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;}
+p.subtitle{font-size:17px; color:var(--text-dim); max-width:640px; margin:0 0 20px;}
+.accuracy-note{font-size:13.5px; color:var(--text-faint); max-width:720px; border-left:2px solid var(--border); padding-left:14px;}
+.accuracy-note b{color:var(--text-dim); font-weight:600;}
+ 
+/* ---------- SECTION SHELL ---------- */
+section{margin-top:56px;}
+.sec-head{display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap;}
+.sec-head h2{font-size:20px; margin:0; font-weight:600; letter-spacing:-0.01em;}
+.sec-head .sec-num{font-family:var(--mono); font-size:12px; color:var(--text-faint); margin-right:8px;}
+.sec-desc{color:var(--text-dim); font-size:14px; max-width:640px; margin:-8px 0 18px;}
+.panel{background:linear-gradient(180deg, var(--panel), var(--panel-2)); border:1px solid var(--border); border-radius:var(--radius); padding:22px;}
+.panel + .panel{margin-top:16px;}
+ 
+/* why button */
+.why-btn{
+  display:inline-flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%;
+  border:1px solid var(--border); background:var(--bg-elev); color:var(--text-dim); font-family:var(--mono);
+  font-size:11px; cursor:pointer; margin-left:7px; flex-shrink:0;
+}
+.why-btn:hover{border-color:var(--optical); color:var(--optical);}
+.why-pop{display:none; margin-top:10px; padding:12px 14px; background:var(--bg-elev); border:1px solid var(--border-soft);
+  border-left:3px solid var(--optical); border-radius:8px; font-size:13.5px; color:var(--text-dim);}
+.why-pop.open{display:block;}
+ 
+/* ---------- CONTROLS ---------- */
+.field{margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
+.field-label{display:flex; justify-content:space-between; font-size:13px; color:var(--text-dim); margin-bottom:7px; font-family:var(--mono);}
+.field-label b{color:var(--text); font-weight:600;}
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:5px; border-radius:3px; background:var(--border-soft); outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--optical); cursor:pointer;
+  box-shadow:0 0 0 4px rgba(255,178,56,0.16); border:2px solid #1a1408;
+}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--optical);border:2px solid #1a1408; cursor:pointer;}
+input[type=text]{
+  width:100%; background:var(--bg-elev); border:1px solid var(--border); color:var(--text); font-family:var(--mono);
+  padding:10px 12px; border-radius:8px; font-size:14px; letter-spacing:.03em;
+}
+input[type=text]:focus{outline:none; border-color:var(--digital);}
+select{background:var(--bg-elev); border:1px solid var(--border); color:var(--text); padding:9px 12px; border-radius:8px; font-family:var(--sans); font-size:13.5px; cursor:pointer;}
+button{font-family:var(--sans); cursor:pointer;}
+.btn{
+  border:1px solid var(--border); background:var(--bg-elev); color:var(--text); padding:10px 18px; border-radius:9px;
+  font-size:13.5px; font-weight:600; transition:border-color .15s, transform .1s;
+}
+.btn:hover{border-color:var(--text-dim);}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:linear-gradient(180deg,#ffc463,var(--optical)); color:#231705; border:none; box-shadow:0 4px 18px rgba(255,178,56,0.25);}
+.btn-primary:hover{filter:brightness(1.06);}
+.btn-ghost{background:transparent;}
+.btn-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+.chip{border:1px solid var(--border); background:var(--bg-elev); color:var(--text-dim); font-family:var(--mono); font-size:12.5px;
+  padding:7px 12px; border-radius:7px;}
+.chip:hover{color:var(--text); border-color:var(--digital);}
+.chip.active{color:var(--digital); border-color:var(--digital); background:rgba(155,140,255,0.08);}
+ 
+/* ---------- GRID HELPERS ---------- */
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+.grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+.grid-6{display:grid; grid-template-columns:repeat(6,1fr); gap:12px;}
+@media(max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr;} .grid-6{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:560px){.grid-2,.grid-3,.grid-4,.grid-6{grid-template-columns:1fr 1fr;}}
+ 
+/* ---------- DATA SOURCE ---------- */
+.example-msgs{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+.binary-readout{
+  font-family:var(--mono); font-size:13.5px; color:var(--digital); background:var(--bg-elev); border:1px solid var(--border-soft);
+  border-radius:8px; padding:12px 14px; margin-top:12px; letter-spacing:.06em; word-break:break-all; min-height:44px;
+}
+.binary-readout .grp{color:var(--text-dim); margin-right:8px;}
+ 
+/* ---------- PIPELINE ---------- */
+.pipeline-shell{position:relative; overflow-x:auto; padding-bottom:6px;}
+.pipeline-track{display:flex; align-items:center; gap:0; min-width:920px; position:relative; padding:34px 6px 10px;}
+.stage{
+  flex:1; min-width:118px; background:var(--bg-elev); border:1px solid var(--border); border-radius:11px;
+  padding:14px 10px; text-align:center; position:relative; z-index:2; transition:border-color .12s, box-shadow .12s;
+  cursor:pointer;
+}
+.stage:hover{border-color:var(--received);}
+.stage .stage-icon{font-size:19px; margin-bottom:6px; display:block;}
+.stage .stage-label{font-size:11.5px; font-weight:600; color:var(--text); letter-spacing:.01em;}
+.stage .stage-sub{font-size:10px; color:var(--text-faint); font-family:var(--mono); margin-top:3px;}
+.stage.lit{border-color:var(--optical); box-shadow:0 0 22px rgba(255,178,56,0.22);}
+.connector{flex:0 0 26px; height:2px; background:var(--border); position:relative; top:0;}
+#pipelineCanvas{position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:3;}
+.pipeline-result{
+  margin-top:18px; padding:14px 16px; border-radius:10px; background:var(--bg-elev); border:1px solid var(--border-soft);
+  font-family:var(--mono); font-size:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.status-tag{font-family:var(--mono); font-size:11.5px; padding:3px 9px; border-radius:20px; border:1px solid var(--border);}
+.status-tag.ok{color:var(--success); border-color:var(--success);}
+.status-tag.bad{color:var(--error); border-color:var(--error);}
+.status-tag.idle{color:var(--text-faint);}
+.stage-info{margin-top:14px; padding:12px 14px; background:var(--bg-elev); border:1px solid var(--border-soft);
+  border-left:3px solid var(--received); border-radius:8px; font-size:13.5px; color:var(--text-dim); display:none;}
+.stage-info.open{display:block;}
+.hint-row{font-size:11.5px; color:var(--text-faint); font-family:var(--mono); margin-top:10px;}
+ 
+/* ---------- METRICS ---------- */
+.metric-card{background:var(--bg-elev); border:1px solid var(--border); border-radius:11px; padding:16px 16px 14px;}
+.metric-card .m-label{font-size:11px; color:var(--text-faint); font-family:var(--mono); letter-spacing:.03em; margin-bottom:6px;}
+.metric-card .m-value{font-size:24px; font-weight:700; font-family:var(--mono);}
+.metric-card .m-bar{height:4px; border-radius:2px; background:var(--border-soft); margin-top:10px; overflow:hidden;}
+.metric-card .m-bar i{display:block; height:100%; border-radius:2px; transition:width .25s;}
+ 
+/* ---------- WAVEFORM CANVASES ---------- */
+.wave-box{background:var(--bg-elev); border:1px solid var(--border-soft); border-radius:10px; padding:10px 12px 6px; margin-top:12px;}
+.wave-box .wave-title{font-size:11px; font-family:var(--mono); color:var(--text-faint); margin-bottom:4px; display:flex; justify-content:space-between;}
+canvas.wave{width:100%; display:block; border-radius:6px;}
+ 
+/* ---------- CHANNEL VISUAL ---------- */
+.channel-visual{position:relative; height:170px; border-radius:10px; overflow:hidden; background:
+  radial-gradient(ellipse at 8% 50%, rgba(255,178,56,0.14), transparent 55%),
+  radial-gradient(ellipse at 92% 50%, rgba(77,200,255,0.12), transparent 55%),
+  var(--bg-elev); border:1px solid var(--border-soft); margin-top:6px;}
+#channelCanvas{width:100%; height:100%; display:block;}
+ 
+/* ---------- OSCILLOSCOPE ---------- */
+.scope-panel{background:#05070c; border:1px solid var(--border-soft); border-radius:10px; padding:10px;}
+#scopeCanvas{width:100%; display:block; border-radius:6px;}
+.scope-controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px;}
+.scope-controls .sep{width:1px; height:20px; background:var(--border);}
+.legend-row{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-family:var(--mono); font-size:11.5px; color:var(--text-dim);}
+.legend-row span{display:inline-flex; align-items:center; gap:6px;}
+.legend-row span[data-ch]{cursor:pointer; user-select:none; transition:opacity .15s;}
+.legend-row span[data-ch]:hover{color:var(--text);}
+.legend-row span[data-ch].off{opacity:.32;}
+.legend-dot{width:9px; height:9px; border-radius:2px; display:inline-block;}
+ 
+/* ---------- COMPARISON ---------- */
+.compare-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.compare-col{background:var(--bg-elev); border:1px solid var(--border-soft); border-radius:11px; padding:18px;}
+.compare-col h3{margin:0 0 14px; font-size:14.5px; display:flex; align-items:center; gap:8px;}
+.compare-col .swatch{width:9px;height:9px;border-radius:50%;}
+.compare-chain{display:flex; flex-direction:column; gap:0;}
+.chain-step{font-family:var(--mono); font-size:12.5px; padding:9px 12px; background:var(--panel); border:1px solid var(--border-soft); border-radius:7px; color:var(--text-dim);}
+.chain-arrow{text-align:center; color:var(--text-faint); font-size:12px; padding:4px 0;}
+@media(max-width:800px){.compare-grid{grid-template-columns:1fr;}}
+ 
+/* ---------- MODEM ---------- */
+.modem-toggle{display:flex; align-items:center; justify-content:space-between; cursor:pointer;}
+.modem-body{max-height:0; overflow:hidden; transition:max-height .25s ease;}
+.modem-body.open{max-height:600px; margin-top:14px;}
+.modem-pair{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:6px;}
+.modem-pair .box{background:var(--bg-elev); border:1px solid var(--border-soft); border-radius:9px; padding:14px;}
+.modem-pair .box h4{margin:0 0 8px; font-size:13px; color:var(--digital);}
+.modem-pair .box p{margin:0; font-size:13px; color:var(--text-dim);}
+.chev{transition:transform .2s;}
+.chev.open{transform:rotate(180deg);}
+@media(max-width:800px){.modem-pair{grid-template-columns:1fr;}}
+ 
+/* ---------- EXPERIMENTS ---------- */
+.exp-card{background:var(--bg-elev); border:1px solid var(--border-soft); border-radius:11px; padding:16px;}
+.exp-card h4{margin:0 0 6px; font-size:14px;}
+.exp-card p{margin:0 0 12px; font-size:13px; color:var(--text-dim);}
+.exp-result{margin-top:10px; font-size:12.5px; color:var(--success); font-family:var(--mono); display:none;}
+.exp-result.show{display:block;}
+ 
+/* ---------- PRESETS ---------- */
+.preset-btn{display:flex; flex-direction:column; align-items:flex-start; gap:3px; background:var(--bg-elev); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px; text-align:left; color:var(--text); width:100%;}
+.preset-btn:hover{border-color:var(--optical);}
+.preset-btn small{color:var(--text-faint); font-size:11.5px; font-weight:400;}
+ 
+footer{margin-top:70px; padding-top:24px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-size:12.5px;}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="wrap">
+ 
+  <header class="hero">
+    <div class="eyebrow-row"><span class="pulse-dot"></span><span>OPTICAL WIRELESS COMMUNICATION LAB</span></div>
+    <h1 class="title">Wi-Fi Transmission Using Optics</h1>
+    <p class="subtitle">Explore how digital data can be transmitted wirelessly using modulated light.</p>
+    <p class="accuracy-note"><b>Scientific note —</b> conventional Wi-Fi (IEEE 802.11) transmits over radio frequencies. This lab simulates <b>optical wireless communication</b> — commonly called <b>Li-Fi</b> — where an LED rapidly changes its optical intensity to encode the same kind of digital data, using light instead of radio waves as the carrier.</p>
+    <p class="hint-row">Tip: press Space to start a transmission from anywhere on the page, or Enter while editing the message.</p>
+  </header>
+ 
+  <!-- 2. DATA SOURCE -->
+  <section id="sec-data">
+    <div class="sec-head"><h2><span class="sec-num">01</span>Digital data source</h2></div>
+    <div class="panel">
+      <div class="grid-2">
+        <div>
+          <div class="field-label">MESSAGE</div>
+          <input type="text" id="msgInput" maxlength="10" value="HELLO">
+          <div class="example-msgs">
+            <button class="chip" data-msg="HELLO">HELLO</button>
+            <button class="chip" data-msg="WIFI">WIFI</button>
+            <button class="chip" data-msg="DATA">DATA</button>
+            <button class="chip" data-msg="10101010">10101010</button>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">BINARY ENCODING <button class="why-btn" data-why="w-ascii">?</button></div>
+          <div class="binary-readout" id="binaryOut">—</div>
+        </div>
+      </div>
+      <div class="why-pop" id="w-ascii">Each character is converted to its 8-bit ASCII code. These bits are the payload that the modulator will turn into light pulses.</div>
+    </div>
+  </section>
+ 
+  <!-- 3+11. MAIN PIPELINE -->
+  <section id="sec-pipeline">
+    <div class="sec-head">
+      <h2><span class="sec-num">02</span>End-to-end transmission chain</h2>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnTransmit">▶ START TRANSMISSION</button>
+        <button class="btn btn-ghost" id="btnResetSim">RESET</button>
+      </div>
+    </div>
+    <p class="sec-desc">Digital Data → Modulator → LED Transmitter → Free-Space Optical Channel → Photodetector → Demodulator → Recovered Data. Click any stage below for a plain-English explanation.</p>
+    <div class="panel">
+      <div class="pipeline-shell">
+        <div class="pipeline-track" id="pipelineTrack">
+          <canvas id="pipelineCanvas"></canvas>
+          <div class="stage" data-stage="0"><span class="stage-icon">⌁</span><div class="stage-label">Data Source</div><div class="stage-sub" id="pl-bits-left">bits</div></div>
+          <div class="connector"></div>
+          <div class="stage" data-stage="1"><span class="stage-icon">▦</span><div class="stage-label">Modulator</div><div class="stage-sub" id="pl-mod-mode">OOK</div></div>
+          <div class="connector"></div>
+          <div class="stage" data-stage="2"><span class="stage-icon">💡</span><div class="stage-label">LED Transmitter</div><div class="stage-sub" id="pl-led-power">0%</div></div>
+          <div class="connector"></div>
+          <div class="stage" data-stage="3"><span class="stage-icon">≈</span><div class="stage-label">Optical Channel</div><div class="stage-sub" id="pl-distance">1 m</div></div>
+          <div class="connector"></div>
+          <div class="stage" data-stage="4"><span class="stage-icon">◉</span><div class="stage-label">Photodetector</div><div class="stage-sub" id="pl-rx-power">0%</div></div>
+          <div class="connector"></div>
+          <div class="stage" data-stage="5"><span class="stage-icon">⌐</span><div class="stage-label">Demodulator</div><div class="stage-sub" id="pl-threshold">50%</div></div>
+          <div class="connector"></div>
+          <div class="stage" data-stage="6"><span class="stage-icon">✓</span><div class="stage-label">Received Data</div><div class="stage-sub" id="pl-status">idle</div></div>
+        </div>
+      </div>
+      <div class="pipeline-result">
+        <span class="status-tag idle" id="resultTag">IDLE</span>
+        <span>Recovered message: <b id="recoveredMsg" style="color:var(--received)">—</b></span>
+      </div>
+      <div class="stage-info" id="stageInfo"></div>
+    </div>
+  </section>
+ 
+  <!-- 15. METRICS DASHBOARD -->
+  <section id="sec-metrics">
+    <div class="sec-head"><h2><span class="sec-num">03</span>Live metrics dashboard</h2></div>
+    <div class="grid-6">
+      <div class="metric-card"><div class="m-label">DATA RATE</div><div class="m-value" id="mDataRate">—</div><div class="m-bar"><i style="background:var(--digital); width:0%" id="bDataRate"></i></div></div>
+      <div class="metric-card"><div class="m-label">OPTICAL POWER</div><div class="m-value" id="mOptPower" style="color:var(--optical)">0%</div><div class="m-bar"><i style="background:var(--optical); width:0%" id="bOptPower"></i></div></div>
+      <div class="metric-card"><div class="m-label">RECEIVED POWER</div><div class="m-value" id="mRxPower" style="color:var(--received)">0%</div><div class="m-bar"><i style="background:var(--received); width:0%" id="bRxPower"></i></div></div>
+      <div class="metric-card"><div class="m-label">SNR</div><div class="m-value" id="mSnr">—</div><div class="m-bar"><i style="background:var(--electrical); width:0%" id="bSnr"></i></div></div>
+      <div class="metric-card"><div class="m-label">BIT ERROR RATE</div><div class="m-value" id="mBer" style="color:var(--error)">0%</div><div class="m-bar"><i style="background:var(--error); width:0%" id="bBer"></i></div></div>
+      <div class="metric-card"><div class="m-label">DISTANCE</div><div class="m-value" id="mDist">1.0 m</div><div class="m-bar"><i style="background:var(--noise); width:0%" id="bDist"></i></div></div>
+    </div>
+  </section>
+ 
+  <!-- 4. MODULATION -->
+  <section id="sec-mod">
+    <div class="sec-head"><h2><span class="sec-num">04</span>Modulation</h2></div>
+    <p class="sec-desc">Different modulation schemes encode bits by changing a property of the optical signal. OOK is the simplest to see: 1 = LED ON, 0 = LED OFF.</p>
+    <div class="panel">
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="chip active" data-mod="OOK">OOK — On-Off Keying</button>
+        <button class="chip" data-mod="ASK">ASK — Amplitude Shift</button>
+        <button class="chip" data-mod="PWM">PWM — Pulse Width</button>
+        <button class="why-btn" data-why="w-mod">?</button>
+      </div>
+      <div class="why-pop" id="w-mod">OOK simply switches the LED fully on for a 1 and off for a 0 — easy to visualize and implement. ASK instead varies the LED's brightness between two non-zero levels. PWM keeps the LED fully on/off but changes the fraction of time it stays on within each bit slot (duty cycle).</div>
+      <div class="wave-box">
+        <div class="wave-title"><span>OPTICAL WAVEFORM PREVIEW (current bit pattern)</span><span id="modLegend" style="color:var(--optical)">OOK</span></div>
+        <canvas class="wave" id="modPreviewCanvas" height="90"></canvas>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 5. OPTICAL TRANSMITTER -->
+  <section id="sec-tx">
+    <div class="sec-head"><h2><span class="sec-num">05</span>Optical transmitter <button class="why-btn" data-why="w-led">?</button></h2></div>
+    <div class="why-pop" id="w-led">An LED can switch its optical intensity extremely rapidly — far faster than the human eye can perceive — allowing digital information to be encoded directly into the emitted light.</div>
+    <div class="panel grid-2" style="align-items:center;">
+      <div>
+        <div class="field">
+          <div class="field-label"><span>LED OPTICAL POWER</span><b id="ledPowerVal">80%</b></div>
+          <input type="range" id="ledPowerSlider" min="0" max="100" value="80">
+        </div>
+        <p style="font-size:13px; color:var(--text-faint); margin:14px 0 0;">Electrical Signal → LED Driver → LED. Human eyes cannot perceive the extremely rapid intensity changes used for this kind of communication.</p>
+      </div>
+      <div style="display:flex; justify-content:center;">
+        <div id="ledGlow" style="width:100px; height:100px; border-radius:50%; background:radial-gradient(circle, #3a2a08, #100c04); box-shadow:0 0 20px rgba(255,178,56,0.1); transition:box-shadow .08s, background .08s;"></div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 6+7. CHANNEL + NOISE -->
+  <section id="sec-channel">
+    <div class="sec-head">
+      <h2><span class="sec-num">06</span>Free-space optical channel &amp; ambient noise</h2>
+      <div class="btn-row">
+        <button class="btn" id="btnRandomChannel">🎲 Randomize channel</button>
+      </div>
+    </div>
+    <p class="sec-desc">Light travels from the LED, through open space, to the photodetector. Distance, ambient light, alignment and attenuation all shape what actually arrives.</p>
+    <div class="panel">
+      <div class="grid-4">
+        <div class="field"><div class="field-label"><span>DISTANCE <button class="why-btn" data-why="w-dist">?</button></span><b id="distVal">3.5 m</b></div><input type="range" id="distSlider" min="1" max="10" step="0.1" value="3.5"></div>
+        <div class="field"><div class="field-label"><span>AMBIENT LIGHT <button class="why-btn" data-why="w-noise">?</button></span><b id="ambVal">20%</b></div><input type="range" id="ambSlider" min="0" max="100" value="20"></div>
+        <div class="field"><div class="field-label"><span>ALIGNMENT <button class="why-btn" data-why="w-align">?</button></span><b id="alignVal">90%</b></div><input type="range" id="alignSlider" min="0" max="100" value="90"></div>
+        <div class="field"><div class="field-label">ATTENUATION<b id="attnVal">10%</b></div><input type="range" id="attnSlider" min="0" max="100" value="10"></div>
+      </div>
+      <div class="why-pop" id="w-dist">Optical power spreads out and weakens the farther it travels — increasing distance reduces the power that reaches the photodetector.</div>
+      <div class="why-pop" id="w-noise">Ambient optical sources such as sunlight or room lighting introduce unwanted variations into the photodetector output, making transmitted 1s and 0s harder to distinguish.</div>
+      <div class="why-pop" id="w-align">The photodetector receives less optical power when the transmitter and receiver are not pointed directly at each other.</div>
+      <div class="channel-visual"><canvas id="channelCanvas"></canvas></div>
+      <div class="legend-row">
+        <span><i class="legend-dot" style="background:var(--optical)"></i>Optical pulse (LED → detector)</span>
+        <span><i class="legend-dot" style="background:var(--noise)"></i>Ambient / noise photons</span>
+        <span><i class="legend-dot" style="background:var(--received)"></i>Detected at photodiode</span>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 7+8. PHOTODETECTOR + DEMODULATION -->
+  <section id="sec-rx">
+    <div class="sec-head"><h2><span class="sec-num">07</span>Photodetector &amp; demodulation</h2></div>
+    <p class="sec-desc">Optical Signal → Photodiode → Electrical Signal → Threshold Detection → Recovered Bits.</p>
+    <div class="panel">
+      <div class="wave-box">
+        <div class="wave-title"><span style="color:var(--optical)">TRANSMITTED OPTICAL SIGNAL</span></div>
+        <canvas class="wave" id="txWaveCanvas" height="70"></canvas>
+      </div>
+      <div class="wave-box">
+        <div class="wave-title"><span style="color:var(--received)">RECEIVED SIGNAL + NOISE (at photodiode)</span></div>
+        <canvas class="wave" id="rxWaveCanvas" height="70"></canvas>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <div class="field-label"><span>DETECTION THRESHOLD</span><b id="threshVal">50%</b></div>
+        <input type="range" id="threshSlider" min="0" max="100" value="50">
+      </div>
+      <div class="wave-box">
+        <div class="wave-title"><span style="color:var(--electrical)">RECOVERED BINARY DATA (post-threshold)</span></div>
+        <canvas class="wave" id="recWaveCanvas" height="70"></canvas>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 9. BER -->
+  <section id="sec-ber">
+    <div class="sec-head"><h2><span class="sec-num">08</span>Bit error rate</h2></div>
+    <div class="panel">
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="metric-card"><div class="m-label">TRANSMITTED BITS</div><div class="m-value" id="berTotal">0</div></div>
+        <div class="metric-card"><div class="m-label">CORRECT BITS</div><div class="m-value" style="color:var(--success)" id="berCorrect">0</div></div>
+        <div class="metric-card"><div class="m-label">ERRORS</div><div class="m-value" style="color:var(--error)" id="berErrors">0</div></div>
+        <div class="metric-card"><div class="m-label">BER</div><div class="m-value" style="color:var(--error)" id="berPct">0%</div></div>
+      </div>
+      <div class="btn-row" style="margin-bottom:10px;">
+        <span style="font-size:12.5px; color:var(--text-faint); font-family:var(--mono);">THEORETICAL BER CURVE:</span>
+        <button class="chip active" data-curve="noise">vs Ambient Noise</button>
+        <button class="chip" data-curve="distance">vs Distance</button>
+      </div>
+      <div class="wave-box"><canvas class="wave" id="berCurveCanvas" height="140"></canvas></div>
+    </div>
+  </section>
+ 
+  <!-- 10. OSCILLOSCOPE -->
+  <section id="sec-scope">
+    <div class="sec-head"><h2><span class="sec-num">09</span>4-channel oscilloscope</h2></div>
+    <div class="panel">
+      <div class="scope-panel"><canvas id="scopeCanvas" height="280"></canvas></div>
+      <div class="legend-row">
+        <span data-ch="0"><i class="legend-dot" style="background:var(--digital)"></i>CH1 · Transmitted electrical</span>
+        <span data-ch="1"><i class="legend-dot" style="background:var(--optical)"></i>CH2 · Optical intensity</span>
+        <span data-ch="2"><i class="legend-dot" style="background:var(--received)"></i>CH3 · Received photodetector</span>
+        <span data-ch="3"><i class="legend-dot" style="background:var(--electrical)"></i>CH4 · Recovered digital</span>
+      </div>
+      <div class="hint-row">Click a channel label to hide/show its trace.</div>
+      <div class="scope-controls">
+        <button class="btn" id="scopePause">⏸ Pause</button>
+        <button class="btn" id="scopeReset">⟲ Reset</button>
+        <div class="sep"></div>
+        <span style="font-size:12px; color:var(--text-faint); font-family:var(--mono);">SPEED</span>
+        <input type="range" id="speedSlider" min="20" max="300" value="110" style="width:120px;">
+        <div class="sep"></div>
+        <span style="font-size:12px; color:var(--text-faint); font-family:var(--mono);">ZOOM</span>
+        <input type="range" id="zoomSlider" min="60" max="420" value="200" style="width:120px;">
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 12. MODEM CONCEPT -->
+  <section id="sec-modem">
+    <div class="sec-head"><h2><span class="sec-num">10</span>What does a modem actually do?</h2></div>
+    <div class="panel">
+      <div class="modem-toggle" id="modemToggle">
+        <span style="font-size:14px; color:var(--text-dim);">A modem performs signal conversion — modulation and demodulation — so information can travel across a physical channel. Tap to expand.</span>
+        <span class="chev" id="modemChev">▾</span>
+      </div>
+      <div class="modem-body" id="modemBody">
+        <div class="modem-pair">
+          <div class="box"><h4>Transmitter modem</h4><p>Digital data → modulated electrical signal → optical transmitter. It converts bits into a form the LED can broadcast as light.</p></div>
+          <div class="box"><h4>Receiver modem</h4><p>Photodetector signal → threshold demodulation → digital data. It converts detected light variations back into the original bits.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 13. COMPARISON -->
+  <section id="sec-compare">
+    <div class="sec-head"><h2><span class="sec-num">11</span>Radio Wi-Fi vs. optical wireless communication</h2></div>
+    <p class="sec-desc">Both transmit information wirelessly — they simply use different physical carriers. This lab demonstrates the optical (Li-Fi) approach, not a modification of standard radio Wi-Fi.</p>
+    <div class="compare-grid">
+      <div class="compare-col">
+        <h3><span class="swatch" style="background:var(--digital)"></span>Traditional Wi-Fi (IEEE 802.11)</h3>
+        <div class="compare-chain">
+          <div class="chain-step">Data</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">RF Modulator</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">Antenna</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">Radio Channel</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">Antenna</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">RF Demodulator</div>
+        </div>
+      </div>
+      <div class="compare-col">
+        <h3><span class="swatch" style="background:var(--optical)"></span>Optical Wireless / Li-Fi</h3>
+        <div class="compare-chain">
+          <div class="chain-step">Data</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">Modulator</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">LED</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">Optical Channel</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">Photodiode</div><div class="chain-arrow">↓</div>
+          <div class="chain-step">Demodulator</div>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- 14. EXPERIMENTS -->
+  <section id="sec-exp">
+    <div class="sec-head"><h2><span class="sec-num">12</span>Try the experiment</h2></div>
+    <div class="grid-2" id="expGrid" style="grid-template-columns:1fr 1fr;"></div>
+  </section>
+ 
+  <!-- 19. PRESETS -->
+  <section id="sec-presets">
+    <div class="sec-head"><h2><span class="sec-num">13</span>Presets</h2></div>
+    <div class="grid-4" id="presetGrid"></div>
+  </section>
+ 
+  <footer>Simulation is client-side, deterministic given its parameters, and uses a simplified physical model (inverse-distance loss, alignment scaling, additive ambient noise, Q-function based theoretical BER) intended for conceptual engineering demonstration rather than production link-budget analysis.</footer>
+</div>
+ 
+<script>
+(function(){
+"use strict";
+ 
+/* ================= STATE ================= */
+const state = {
+  message: "HELLO",
+  bits: "",
+  modulation: "OOK",
+  ledPower: 80,
+  distance: 3.5,
+  ambient: 20,
+  alignment: 90,
+  attenuation: 10,
+  threshold: 50,
+  speed: 110,      // samples per second
+  zoom: 200,        // samples visible in scope window
+  transmitting: false,
+  playing: true,   // idle ambient animation for the channel view, always on
+  playhead: 0,
+  noiseSeed: 12345,
+  channelVisible: [true, true, true, true]
+};
+ 
+const SAMPLES_PER_BIT = 24;
+ 
+/* ================= UTIL ================= */
+function textToBinary(text){
+  let out = "";
+  for(let i=0;i<text.length;i++){
+    out += text.charCodeAt(i).toString(2).padStart(8,"0");
+  }
+  return out;
+}
+function binaryToText(bits){
+  let out = "";
+  for(let i=0;i+8<=bits.length;i+=8){
+    out += String.fromCharCode(parseInt(bits.slice(i,i+8),2));
+  }
+  return out;
+}
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function erfc(x){
+  // Abramowitz-Stegun approximation
+  const z = Math.abs(x);
+  const t = 1/(1+0.5*z);
+  const ans = t*Math.exp(-z*z - 1.26551223 + t*(1.00002368 + t*(0.37409196 + t*(0.09678418 +
+    t*(-0.18628806 + t*(0.27886807 + t*(-1.13520398 + t*(1.48851587 +
+    t*(-0.82215223 + t*0.17087277)))))))));
+  return x>=0 ? ans : 2-ans;
+}
+function qFunc(x){ return 0.5*erfc(x/Math.SQRT2); }
+ 
+// seeded RNG (mulberry32) for reproducible noise per transmission
+function makeRng(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gaussian(rng){
+  const u1 = Math.max(rng(), 1e-9), u2 = rng();
+  return Math.sqrt(-2*Math.log(u1)) * Math.cos(2*Math.PI*u2);
+}
+ 
+/* ================= CHANNEL MODEL ================= */
+function channelFactors(){
+  const distanceFactor = 1/(1 + 0.16*Math.pow(state.distance-1, 1.25));
+  const alignmentFactor = 0.25 + 0.75*(state.alignment/100);
+  const attenuationFactor = 1 - state.attenuation/100;
+  const noiseStd = 0.025 + (state.ambient/100)*0.34;
+  return {distanceFactor, alignmentFactor, attenuationFactor, noiseStd};
+}
+ 
+/* Build one bit's clean amplitude sequence (array of samplesPerBit values, 0..1) given bit value & modulation */
+function bitWaveform(bit){
+  const arr = new Array(SAMPLES_PER_BIT);
+  if(state.modulation === "OOK"){
+    const v = bit === "1" ? 1 : 0;
+    for(let i=0;i<SAMPLES_PER_BIT;i++) arr[i]=v;
+  } else if(state.modulation === "ASK"){
+    const v = bit === "1" ? 1 : 0.28;
+    for(let i=0;i<SAMPLES_PER_BIT;i++) arr[i]=v;
+  } else { // PWM
+    const duty = bit === "1" ? 0.72 : 0.22;
+    const onSamples = Math.round(duty*SAMPLES_PER_BIT);
+    for(let i=0;i<SAMPLES_PER_BIT;i++) arr[i] = i<onSamples ? 1 : 0;
+  }
+  return arr;
+}
+ 
+/* Recompute the full run: tx / optical / received(noisy) / recovered arrays + metrics */
+let run = null;
+function computeRun(){
+  const bits = state.bits;
+  const n = bits.length;
+  const tx = new Float32Array(n*SAMPLES_PER_BIT);
+  for(let b=0;b<n;b++){
+    const w = bitWaveform(bits[b]);
+    for(let i=0;i<SAMPLES_PER_BIT;i++) tx[b*SAMPLES_PER_BIT+i] = w[i];
+  }
+  const {distanceFactor, alignmentFactor, attenuationFactor, noiseStd} = channelFactors();
+  const ledFrac = state.ledPower/100;
+  const optical = new Float32Array(tx.length);
+  for(let i=0;i<tx.length;i++) optical[i] = tx[i]*ledFrac;
+ 
+  const channelGain = distanceFactor*alignmentFactor*attenuationFactor;
+  const rxClean = new Float32Array(tx.length);
+  for(let i=0;i<tx.length;i++) rxClean[i] = optical[i]*channelGain;
+ 
+  const rng = makeRng(state.noiseSeed);
+  const rxNoisy = new Float32Array(tx.length);
+  for(let i=0;i<tx.length;i++){
+    rxNoisy[i] = clamp(rxClean[i] + gaussian(rng)*noiseStd, -0.35, 1.6);
+  }
+ 
+  // level stats for threshold mapping + SNR
+  let minV = Infinity, maxV = -Infinity, sumHigh=0,cHigh=0,sumLow=0,cLow=0;
+  for(let b=0;b<n;b++){
+    let avg=0;
+    for(let i=0;i<SAMPLES_PER_BIT;i++) avg += rxNoisy[b*SAMPLES_PER_BIT+i];
+    avg/=SAMPLES_PER_BIT;
+    minV = Math.min(minV, avg); maxV = Math.max(maxV, avg);
+    if(bits[b]==="1"){ sumHigh+=avg; cHigh++; } else { sumLow+=avg; cLow++; }
+  }
+  if(!isFinite(minV)){ minV=0; maxV=1; }
+  const highLevel = cHigh? sumHigh/cHigh : channelGain*ledFrac;
+  const lowLevel = cLow? sumLow/cLow : 0;
+  const levelDiff = Math.max(highLevel-lowLevel, 0.0001);
+ 
+  const threshAbs = minV + (state.threshold/100)*(maxV-minV || 0.0001);
+ 
+  const recoveredBits = new Array(n);
+  const recSamples = new Float32Array(tx.length);
+  for(let b=0;b<n;b++){
+    let avg=0;
+    for(let i=0;i<SAMPLES_PER_BIT;i++) avg += rxNoisy[b*SAMPLES_PER_BIT+i];
+    avg/=SAMPLES_PER_BIT;
+    const bit = avg > threshAbs ? "1":"0";
+    recoveredBits[b]=bit;
+    const v = bit==="1"?1:0;
+    for(let i=0;i<SAMPLES_PER_BIT;i++) recSamples[b*SAMPLES_PER_BIT+i]=v;
+  }
+  const recoveredBitsStr = recoveredBits.join("");
+  const recoveredMessage = binaryToText(recoveredBitsStr);
+ 
+  let errors=0;
+  for(let b=0;b<n;b++) if(bits[b]!==recoveredBits[b]) errors++;
+  const ber = n? errors/n : 0;
+ 
+  const snrLinear = Math.pow(levelDiff/2,2) / Math.pow(noiseStd,2);
+  const snrDb = 10*Math.log10(Math.max(snrLinear,1e-6));
+ 
+  const theoreticalBer = qFunc(levelDiff/(2*Math.max(noiseStd,1e-4)));
+ 
+  return {
+    bits, n, tx, optical, rxClean, rxNoisy, recSamples, recoveredBits: recoveredBitsStr,
+    recoveredMessage, errors, ber, theoreticalBer, snrDb, threshAbs, minV, maxV,
+    receivedPowerFrac: clamp(channelGain*ledFrac,0,1), channelGain
+  };
+}
+ 
+/* ================= DOM refs ================= */
+const $ = id => document.getElementById(id);
+const msgInput = $("msgInput");
+const binaryOut = $("binaryOut");
+const ledPowerSlider=$("ledPowerSlider"), ledPowerVal=$("ledPowerVal");
+const distSlider=$("distSlider"), distVal=$("distVal");
+const ambSlider=$("ambSlider"), ambVal=$("ambVal");
+const alignSlider=$("alignSlider"), alignVal=$("alignVal");
+const attnSlider=$("attnSlider"), attnVal=$("attnVal");
+const threshSlider=$("threshSlider"), threshVal=$("threshVal");
+const speedSlider=$("speedSlider"), zoomSlider=$("zoomSlider");
+ 
+function formatBinary(bits){
+  const groups=[];
+  for(let i=0;i<bits.length;i+=8) groups.push(bits.slice(i,i+8));
+  return groups.map(g=>`<span class="grp">${g}</span>`).join(" ");
+}
+ 
+function refreshBits(){
+  state.bits = textToBinary(state.message);
+  binaryOut.innerHTML = state.bits ? formatBinary(state.bits) : "—";
+  $("pl-bits-left").textContent = state.bits.length + " bits";
+}
+ 
+/* ================= WIRE CONTROLS ================= */
+msgInput.addEventListener("input", ()=>{
+  state.message = msgInput.value.toUpperCase().slice(0,10);
+  refreshBits();
+  recomputeAndRender();
+});
+msgInput.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){ $("btnTransmit").click(); }
+});
+document.querySelectorAll(".chip[data-msg]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    msgInput.value = btn.dataset.msg;
+    state.message = btn.dataset.msg;
+    refreshBits();
+    recomputeAndRender();
+  });
+});
+ 
+document.querySelectorAll(".chip[data-mod]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".chip[data-mod]").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.modulation = btn.dataset.mod;
+    $("modLegend").textContent = state.modulation;
+    $("pl-mod-mode").textContent = state.modulation;
+    recomputeAndRender();
+  });
+});
+ 
+function bindSlider(slider,label,fmt,key){
+  slider.addEventListener("input", ()=>{
+    state[key] = parseFloat(slider.value);
+    label.textContent = fmt(state[key]);
+    recomputeAndRender();
+  });
+}
+bindSlider(ledPowerSlider, ledPowerVal, v=>Math.round(v)+"%","ledPower");
+bindSlider(distSlider, distVal, v=>v.toFixed(1)+" m","distance");
+bindSlider(ambSlider, ambVal, v=>Math.round(v)+"%","ambient");
+bindSlider(alignSlider, alignVal, v=>Math.round(v)+"%","alignment");
+bindSlider(attnSlider, attnVal, v=>Math.round(v)+"%","attenuation");
+bindSlider(threshSlider, threshVal, v=>Math.round(v)+"%","threshold");
+speedSlider.addEventListener("input", ()=>{ state.speed = parseFloat(speedSlider.value); });
+zoomSlider.addEventListener("input", ()=>{ state.zoom = parseFloat(zoomSlider.value); });
+ 
+document.querySelectorAll(".why-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const pop = $(btn.dataset.why);
+    if(pop) pop.classList.toggle("open");
+  });
+});
+ 
+$("modemToggle").addEventListener("click", ()=>{
+  $("modemBody").classList.toggle("open");
+  $("modemChev").classList.toggle("open");
+});
+ 
+/* Transmit / reset */
+$("btnTransmit").addEventListener("click", ()=>{
+  state.noiseSeed = Math.floor(Math.random()*1e9);
+  state.playhead = 0;
+  state.transmitting = true;
+  run = computeRun();
+  $("resultTag").className = "status-tag idle";
+  $("resultTag").textContent = "TRANSMITTING…";
+  $("recoveredMsg").textContent = "…";
+});
+$("btnResetSim").addEventListener("click", ()=>{
+  msgInput.value="HELLO"; state.message="HELLO";
+  state.modulation="OOK";
+  document.querySelectorAll(".chip[data-mod]").forEach(b=>b.classList.remove("active"));
+  document.querySelector('.chip[data-mod="OOK"]').classList.add("active");
+  $("modLegend").textContent="OOK"; $("pl-mod-mode").textContent="OOK";
+  ledPowerSlider.value=80; state.ledPower=80; ledPowerVal.textContent="80%";
+  distSlider.value=3.5; state.distance=3.5; distVal.textContent="3.5 m";
+  ambSlider.value=20; state.ambient=20; ambVal.textContent="20%";
+  alignSlider.value=90; state.alignment=90; alignVal.textContent="90%";
+  attnSlider.value=10; state.attenuation=10; attnVal.textContent="10%";
+  threshSlider.value=50; state.threshold=50; threshVal.textContent="50%";
+  refreshBits();
+  state.transmitting=false; state.playhead=0;
+  $("resultTag").className="status-tag idle"; $("resultTag").textContent="IDLE";
+  $("recoveredMsg").textContent="—";
+  $("stageInfo").classList.remove("open");
+  recomputeAndRender();
+});
+ 
+/* Randomize channel conditions — quick way to explore the space */
+$("btnRandomChannel").addEventListener("click", ()=>{
+  applyPreset({
+    distance: +(1 + Math.random()*9).toFixed(1),
+    ambient: Math.round(Math.random()*100),
+    alignment: Math.round(35 + Math.random()*65),
+    attenuation: Math.round(Math.random()*45),
+    ledPower: Math.round(50 + Math.random()*50)
+  });
+});
+ 
+/* Presets */
+const PRESETS = [
+  {name:"Ideal Channel", desc:"Low noise · perfect alignment · short distance", v:{distance:1.5, ambient:5, alignment:100, attenuation:0, ledPower:85}},
+  {name:"Indoor Room", desc:"Moderate ambient light · medium distance", v:{distance:4, ambient:30, alignment:85, attenuation:15, ledPower:75}},
+  {name:"Bright Sunlight", desc:"High ambient light · high noise", v:{distance:4, ambient:85, alignment:80, attenuation:20, ledPower:90}},
+  {name:"Poor Alignment", desc:"Reduced received power", v:{distance:4, ambient:25, alignment:25, attenuation:15, ledPower:75}},
+];
+const presetGrid = $("presetGrid");
+PRESETS.forEach(p=>{
+  const btn = document.createElement("button");
+  btn.className="preset-btn";
+  btn.innerHTML = `<div>${p.name}</div><small>${p.desc}</small>`;
+  btn.addEventListener("click", ()=>{
+    applyPreset(p.v);
+  });
+  presetGrid.appendChild(btn);
+});
+function applyPreset(v){
+  distSlider.value=v.distance; state.distance=v.distance; distVal.textContent=v.distance.toFixed(1)+" m";
+  ambSlider.value=v.ambient; state.ambient=v.ambient; ambVal.textContent=Math.round(v.ambient)+"%";
+  alignSlider.value=v.alignment; state.alignment=v.alignment; alignVal.textContent=Math.round(v.alignment)+"%";
+  attnSlider.value=v.attenuation; state.attenuation=v.attenuation; attnVal.textContent=Math.round(v.attenuation)+"%";
+  ledPowerSlider.value=v.ledPower; state.ledPower=v.ledPower; ledPowerVal.textContent=Math.round(v.ledPower)+"%";
+  recomputeAndRender();
+}
+ 
+/* Experiments */
+const EXPERIMENTS = [
+  {title:"Experiment 1 — Increase Distance", body:"Move the receiver farther from the LED. What happens to received signal strength?",
+   action:()=>{ distSlider.value = Math.min(10, state.distance+3); distSlider.dispatchEvent(new Event("input"));},
+   result:()=>`Received power fell to ${(run.receivedPowerFrac*100).toFixed(0)}% — optical power drops sharply as distance increases.`},
+  {title:"Experiment 2 — Add Ambient Light", body:"Increase ambient light and observe the noise.",
+   action:()=>{ ambSlider.value = Math.min(100, state.ambient+40); ambSlider.dispatchEvent(new Event("input"));},
+   result:()=>`SNR dropped to ${run.snrDb.toFixed(1)} dB and BER rose to ${(run.ber*100).toFixed(1)}% as ambient noise increased.`},
+  {title:"Experiment 3 — Misalign the Receiver", body:"Reduce alignment and observe the effect on BER.",
+   action:()=>{ alignSlider.value = Math.max(0, state.alignment-60); alignSlider.dispatchEvent(new Event("input"));},
+   result:()=>`Misalignment reduced received power to ${(run.receivedPowerFrac*100).toFixed(0)}%, pushing BER to ${(run.ber*100).toFixed(1)}%.`},
+  {title:"Experiment 4 — Increase LED Power", body:"Can increasing optical power compensate for channel loss?",
+   action:()=>{ ledPowerSlider.value = 100; ledPowerSlider.dispatchEvent(new Event("input"));},
+   result:()=>`Raising LED power to 100% improved received power to ${(run.receivedPowerFrac*100).toFixed(0)}% — higher transmit power partially compensates for channel loss.`},
+  {title:"Experiment 5 — Find the Best Threshold", body:"Adjust the detection threshold until the BER reaches its minimum.",
+   action:()=>{ threshSlider.value = 50; threshSlider.dispatchEvent(new Event("input"));},
+   result:()=>`At the midpoint threshold (50%), BER is ${(run.ber*100).toFixed(1)}% — try sliding it toward 0% or 100% to see errors increase.`},
+];
+const expGrid = $("expGrid");
+EXPERIMENTS.forEach((exp,idx)=>{
+  const card = document.createElement("div");
+  card.className="exp-card";
+  card.innerHTML = `<h4>${exp.title}</h4><p>${exp.body}</p>
+    <button class="btn" data-idx="${idx}">Run experiment</button>
+    <div class="exp-result" id="exp-result-${idx}"></div>`;
+  expGrid.appendChild(card);
+});
+expGrid.addEventListener("click", (e)=>{
+  const btn = e.target.closest("button[data-idx]");
+  if(!btn) return;
+  const idx = parseInt(btn.dataset.idx);
+  EXPERIMENTS[idx].action();
+  run = computeRun();
+  const resEl = $("exp-result-"+idx);
+  resEl.textContent = EXPERIMENTS[idx].result();
+  resEl.classList.add("show");
+});
+ 
+/* BER curve toggle */
+let curveMode = "noise";
+document.querySelectorAll(".chip[data-curve]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".chip[data-curve]").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    curveMode = btn.dataset.curve;
+    drawBerCurve();
+  });
+});
+ 
+/* Scope controls */
+let scopePaused=false;
+$("scopePause").addEventListener("click", ()=>{
+  scopePaused = !scopePaused;
+  $("scopePause").textContent = scopePaused ? "▶ Resume" : "⏸ Pause";
+});
+$("scopeReset").addEventListener("click", ()=>{
+  state.playhead = 0;
+});
+document.querySelectorAll('.legend-row span[data-ch]').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    const idx = parseInt(el.dataset.ch, 10);
+    state.channelVisible[idx] = !state.channelVisible[idx];
+    el.classList.toggle('off', !state.channelVisible[idx]);
+  });
+});
+ 
+/* Pipeline stage explanations */
+const STAGE_INFO = [
+  "Digital Data Source — your message is converted into 8-bit ASCII, the raw bitstream everything downstream has to carry.",
+  "Modulator — maps each bit onto a physical waveform (OOK, ASK, or PWM) that the LED driver can reproduce.",
+  "LED Transmitter — the LED's optical intensity switches according to the modulated waveform, faster than the eye can perceive.",
+  "Free-Space Optical Channel — light travels through air; distance, alignment, attenuation, and ambient light all degrade it before it arrives.",
+  "Photodetector — converts the arriving light back into an electrical signal proportional to received optical power.",
+  "Demodulator — compares the electrical signal to a threshold to decide whether each bit slot was a 1 or a 0.",
+  "Recovered Data — the recovered bits are grouped back into bytes and decoded to ASCII text."
+];
+$("pipelineTrack").addEventListener("click", (e)=>{
+  const stageEl = e.target.closest(".stage");
+  if(!stageEl) return;
+  const idx = parseInt(stageEl.dataset.stage, 10);
+  const info = $("stageInfo");
+  info.textContent = STAGE_INFO[idx] || "";
+  info.classList.add("open");
+});
+ 
+/* Keyboard shortcuts */
+document.addEventListener("keydown", (e)=>{
+  const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
+  if(e.code === "Space" && tag !== "input" && tag !== "textarea"){
+    e.preventDefault();
+    $("btnTransmit").click();
+  }
+});
+ 
+/* ================= CANVAS SETUP ================= */
+/*
+  fitCanvas() previously re-read canvas.height (already scaled by devicePixelRatio
+  from the last call) to decide the "intended" CSS height, then multiplied it by
+  the ratio again — so every recompute doubled the canvas's height. That growth
+  compounded on every keystroke/slider drag and on every window "resize" event
+  (which mobile browsers fire while scrolling, as the address bar hides/shows),
+  which is what caused the layout to visibly distort while scrolling.
+  Fix: cache the *intended* CSS height once from the height attribute, lock the
+  element's CSS size explicitly, and only touch the backing buffer when the
+  rendered width or pixel ratio actually changes.
+*/
+function fitCanvas(canvas){
+  const ratio = window.devicePixelRatio || 1;
+  if(canvas.__baseHeight === undefined){
+    canvas.__baseHeight = parseInt(canvas.getAttribute("height"), 10) || canvas.clientHeight || 90;
+  }
+  const cssH = canvas.__baseHeight;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(1, Math.round(rect.width));
+  if(canvas.__lastW !== w || canvas.__lastRatio !== ratio){
+    canvas.width = Math.max(1, w*ratio);
+    canvas.height = Math.max(1, cssH*ratio);
+    canvas.style.width = w + "px";
+    canvas.style.height = cssH + "px";
+    canvas.__lastW = w;
+    canvas.__lastRatio = ratio;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  return {ctx, w, h: cssH};
+}
+ 
+function drawWave(canvasId, samples, color, opts){
+  opts = opts||{};
+  const canvas = $(canvasId);
+  const {ctx,w,h} = fitCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  // grid
+  ctx.strokeStyle = "rgba(255,255,255,0.045)";
+  ctx.lineWidth=1;
+  for(let gy=0; gy<=4; gy++){ const y=(h/4)*gy; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+  if(!samples || samples.length===0) return;
+  const n = samples.length;
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = color; ctx.shadowBlur = opts.glow||4;
+  for(let i=0;i<n;i++){
+    const x = (i/(n-1))*w;
+    const v = clamp(samples[i],-0.3,1.3);
+    const y = h - 10 - v*(h-20);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur=0;
+  if(opts.threshold!==undefined){
+    const y = h-10-clamp(opts.threshold,-0.3,1.3)*(h-20);
+    ctx.strokeStyle = "rgba(255,95,120,0.85)";
+    ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+ 
+/* mod preview */
+function drawModPreview(){
+  const bits = state.bits ? state.bits.slice(0,16) : "1011001101011010";
+  let samples = [];
+  for(const b of bits){ samples = samples.concat(bitWaveform(b)); }
+  const colorMap = {OOK:getCss('--optical'), ASK:getCss('--digital'), PWM:getCss('--electrical')};
+  drawWave("modPreviewCanvas", samples, colorMap[state.modulation]);
+}
+function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+ 
+/* channel visual: beam of moving dots + noise sparks */
+let beamParticles = [];
+function initChannelCanvas(){
+  const canvas = $("channelCanvas");
+  let lastW=-1, lastH=-1;
+  const resize=()=>{
+    const ratio = window.devicePixelRatio||1;
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.round(rect.width), h = Math.round(rect.height);
+    if(w===lastW && h===lastH) return;
+    lastW=w; lastH=h;
+    canvas.width = w*ratio; canvas.height = h*ratio;
+    canvas.getContext("2d").setTransform(ratio,0,0,ratio,0,0);
+  };
+  resize();
+  window.addEventListener("resize", resize);
+}
+function drawChannel(dt){
+  const canvas = $("channelCanvas");
+  const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  ctx.clearRect(0,0,w,h);
+ 
+  // LED at left
+  const ledX = 28, ledY = h/2;
+  const bitOn = run && state.transmitting ? currentBitValue() : 0.6;
+  const ledR = 12 + bitOn*10;
+  const g = ctx.createRadialGradient(ledX,ledY,2,ledX,ledY,ledR*2.4);
+  g.addColorStop(0, `rgba(255,178,56,${0.55+bitOn*0.4})`);
+  g.addColorStop(1, "rgba(255,178,56,0)");
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(ledX,ledY,ledR*2.4,0,7); ctx.fill();
+  ctx.fillStyle = `rgba(255,${190+bitOn*40},${100+bitOn*100},1)`;
+  ctx.beginPath(); ctx.arc(ledX,ledY,7,0,7); ctx.fill();
+ 
+  // photodetector at right
+  const pdX = w-30, pdY = h/2;
+  const rxLevel = run ? currentRxValue() : 0.3;
+  ctx.strokeStyle="#38455e"; ctx.lineWidth=2;
+  ctx.strokeRect(pdX-10, pdY-16, 20,32);
+  ctx.fillStyle = `rgba(77,200,255,${0.25+clamp(rxLevel,0,1)*0.6})`;
+  ctx.fillRect(pdX-8,pdY-14,16,28);
+ 
+  // distance scale indicator
+  ctx.fillStyle="rgba(255,255,255,0.35)"; ctx.font="11px IBM Plex Mono, monospace";
+  ctx.fillText(state.distance.toFixed(1)+" m", w/2-16, h-10);
+  ctx.strokeStyle="rgba(255,255,255,0.15)";
+  ctx.beginPath(); ctx.moveTo(ledX+14,h-18); ctx.lineTo(pdX-14,h-18); ctx.stroke();
+ 
+  // beam particles spawn rate depends on ledPower; emitted continuously (idle preview) or during transmission
+  if(state.transmitting || state.playing){
+    const spawnChance = 0.22 + state.ledPower/100*0.35;
+    if(Math.random() < spawnChance){
+      beamParticles.push({x:ledX+10, y:ledY+(Math.random()-0.5)*6, speed:60+Math.random()*30, on: (run?currentBitValue():Math.random())>0.5, type:"beam"});
+    }
+    const noiseChance = state.ambient/100*0.5;
+    if(Math.random() < noiseChance){
+      beamParticles.push({x: ledX+40+Math.random()*(w-ledX-70), y: Math.random()*h, speed:20+Math.random()*40, type:"noise", life:1});
+    }
+  }
+  const alignFactor = 0.3+0.7*(state.alignment/100);
+  beamParticles = beamParticles.filter(p=>{
+    p.x += (p.speed*dt)/1000 * (60);
+    if(p.type==="beam"){
+      const driftTarget = pdY + (1-alignFactor)*30*(Math.sin(p.x*0.05));
+      p.y += (driftTarget-p.y)*0.02;
+      if(p.x> pdX-14) return false;
+      ctx.fillStyle = p.on ? `rgba(255,178,56,${0.85*alignFactor+0.1})` : "rgba(255,178,56,0.12)";
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.on?3.2:1.6,0,7); ctx.fill();
+      return true;
+    } else {
+      p.life -= dt/900;
+      if(p.life<=0) return false;
+      ctx.fillStyle = `rgba(255,91,120,${0.5*p.life})`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,2,0,7); ctx.fill();
+      return true;
+    }
+  });
+  if(beamParticles.length>260) beamParticles.splice(0, beamParticles.length-260);
+}
+ 
+/* pipeline canvas: bit tokens flowing across stages */
+function drawPipeline(){
+  const canvas = $("pipelineCanvas");
+  const track = $("pipelineTrack");
+  const ratio = window.devicePixelRatio||1;
+  const rect = track.getBoundingClientRect();
+  const w = Math.max(1, Math.round(rect.width)), h = Math.max(1, Math.round(rect.height));
+  if(canvas.__lastW !== w || canvas.__lastH !== h || canvas.__lastRatio !== ratio){
+    canvas.width = w*ratio; canvas.height = h*ratio;
+    canvas.style.width = w+"px"; canvas.style.height = h+"px";
+    canvas.__lastW = w; canvas.__lastH = h; canvas.__lastRatio = ratio;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.clearRect(0,0,w,h);
+ 
+  const stages = Array.from(track.querySelectorAll(".stage"));
+  stages.forEach(s=>s.classList.remove("lit"));
+  if(!run || !state.transmitting) return;
+ 
+  const bitPos = state.playhead / SAMPLES_PER_BIT; // fractional bit index at photodetector-ish reference
+  const stageDelayBits = 1.15; // visual delay per stage
+  const colors = [getCss('--digital'), getCss('--digital'), getCss('--optical'), getCss('--optical'), getCss('--received'), getCss('--received'), getCss('--electrical')];
+ 
+  stages.forEach((stageEl, idx)=>{
+    const activeBitF = bitPos - idx*stageDelayBits;
+    const bIdx = Math.floor(activeBitF);
+    if(bIdx>=0 && bIdx<run.n){
+      stageEl.classList.add("lit");
+      const bitVal = idx<=1 ? run.bits[bIdx] : (idx<=4 ? run.bits[bIdx] : run.recoveredBits[bIdx]);
+      const r = stageEl.getBoundingClientRect();
+      const trackRect = track.getBoundingClientRect();
+      const cx = r.left - trackRect.left + r.width/2;
+      const cy = 14;
+      ctx.fillStyle = bitVal==="1" ? colors[idx] : "rgba(255,255,255,0.15)";
+      ctx.shadowColor = colors[idx]; ctx.shadowBlur = bitVal==="1"?10:0;
+      ctx.beginPath(); ctx.arc(cx,cy,5,0,7); ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle="rgba(255,255,255,0.55)"; ctx.font="10px IBM Plex Mono, monospace"; ctx.textAlign="center";
+      ctx.fillText(bitVal, cx, cy+18);
+    }
+  });
+}
+function currentBitValue(){
+  if(!run) return 0;
+  const idx = Math.min(run.optical.length-1, Math.max(0, Math.floor(state.playhead)));
+  return run.optical[idx] || 0;
+}
+function currentRxValue(){
+  if(!run) return 0;
+  const idx = Math.min(run.rxNoisy.length-1, Math.max(0, Math.floor(state.playhead)));
+  return run.rxNoisy[idx] || 0;
+}
+ 
+/* Oscilloscope draw */
+function drawScope(){
+  const canvas = $("scopeCanvas");
+  const ratio = window.devicePixelRatio||1;
+  if(canvas.__baseHeight === undefined){
+    canvas.__baseHeight = parseInt(canvas.getAttribute("height"), 10) || 280;
+  }
+  const cssH = canvas.__baseHeight;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(1, Math.round(rect.width));
+  if(canvas.__lastW !== w || canvas.__lastRatio !== ratio){
+    canvas.width = w*ratio; canvas.height = cssH*ratio;
+    canvas.style.width = w+"px"; canvas.style.height = cssH+"px";
+    canvas.__lastW = w; canvas.__lastRatio = ratio;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  const h = cssH;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#05070c"; ctx.fillRect(0,0,w,h);
+ 
+  const channels = [
+    {data: run?run.tx:null, color:getCss('--digital')},
+    {data: run?run.optical:null, color:getCss('--optical')},
+    {data: run?run.rxNoisy:null, color:getCss('--received')},
+    {data: run?run.recSamples:null, color:getCss('--electrical')},
+  ];
+  const rowH = h/4;
+  const zoom = Math.round(state.zoom);
+  const start = Math.max(0, Math.floor(state.playhead) - Math.floor(zoom*0.7));
+  const end = start+zoom;
+ 
+  channels.forEach((ch, ci)=>{
+    const top = ci*rowH;
+    ctx.strokeStyle="rgba(255,255,255,0.05)";
+    ctx.beginPath(); ctx.moveTo(0, top+rowH); ctx.lineTo(w, top+rowH); ctx.stroke();
+    ctx.fillStyle = state.channelVisible[ci] ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.12)";
+    ctx.font="10px IBM Plex Mono, monospace";
+    ctx.fillText("CH"+(ci+1), 6, top+13);
+    if(!ch.data || ch.data.length===0 || !state.channelVisible[ci]) return;
+    ctx.beginPath();
+    ctx.strokeStyle = ch.color; ctx.lineWidth=1.6;
+    let first=true;
+    for(let x=0; x<w; x++){
+      const sampleIdx = start + Math.floor((x/w)*(end-start));
+      if(sampleIdx<0 || sampleIdx>=ch.data.length) continue;
+      const v = clamp(ch.data[sampleIdx], -0.3, 1.3);
+      const y = top + rowH - 6 - v*(rowH-16);
+      if(first){ ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // playhead marker
+    if(state.playhead>=start && state.playhead<=end){
+      const px = ((state.playhead-start)/(end-start))*w;
+      ctx.strokeStyle="rgba(255,255,255,0.25)";
+      ctx.beginPath(); ctx.moveTo(px, top+2); ctx.lineTo(px, top+rowH-2); ctx.stroke();
+    }
+  });
+}
+ 
+/* BER curve chart (theoretical vs current param) */
+function drawBerCurve(){
+  const canvas = $("berCurveCanvas");
+  const {ctx,w,h} = fitCanvas(canvas);
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="rgba(255,255,255,0.05)";
+  for(let i=0;i<=4;i++){ const y=(h/4)*i; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+ 
+  const points = [];
+  const N = 60;
+  for(let i=0;i<=N;i++){
+    const t = i/N;
+    let amb = state.ambient, dist = state.distance;
+    if(curveMode==="noise") amb = t*100; else dist = 1+t*9;
+    const savedAmb=state.ambient, savedDist=state.distance;
+    state.ambient=amb; state.distance=dist;
+    const {distanceFactor, alignmentFactor, attenuationFactor, noiseStd} = channelFactors();
+    const ledFrac = state.ledPower/100;
+    const channelGain = distanceFactor*alignmentFactor*attenuationFactor;
+    const levelDiff = Math.max(channelGain*ledFrac, 0.0001);
+    const ber = qFunc(levelDiff/(2*Math.max(noiseStd,1e-4)));
+    state.ambient=savedAmb; state.distance=savedDist;
+    points.push(clamp(ber,0,1));
+  }
+  ctx.beginPath();
+  ctx.strokeStyle = getCss('--error'); ctx.lineWidth=2;
+  points.forEach((p,i)=>{
+    const x = (i/(points.length-1))*w;
+    const y = h-8-Math.sqrt(p)*(h-16); // sqrt scale to make small BER visible
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+ 
+  // current point marker
+  const curT = curveMode==="noise" ? state.ambient/100 : (state.distance-1)/9;
+  const curX = curT*w;
+  ctx.fillStyle = getCss('--error');
+  ctx.beginPath(); ctx.arc(curX, h-8-Math.sqrt(clamp(run?run.theoreticalBer:0,0,1))*(h-16), 4, 0, 7); ctx.fill();
+ 
+  ctx.fillStyle="rgba(255,255,255,0.35)"; ctx.font="10px IBM Plex Mono, monospace";
+  ctx.fillText(curveMode==="noise"?"0%":"1 m", 4, h-4);
+  ctx.textAlign="right";
+  ctx.fillText(curveMode==="noise"?"100%":"10 m", w-4, h-4);
+  ctx.textAlign="left";
+}
+ 
+/* ================= RENDER / METRICS ================= */
+function updateMetrics(){
+  if(!run){ return; }
+  const effectiveRate = Math.max(0.05, (state.speed/SAMPLES_PER_BIT)).toFixed(2);
+  $("mDataRate").textContent = effectiveRate+" Mbps";
+  $("bDataRate").style.width = clamp((state.speed/300)*100,4,100)+"%";
+ 
+  $("mOptPower").textContent = Math.round(state.ledPower)+"%";
+  $("bOptPower").style.width = state.ledPower+"%";
+ 
+  const rx = Math.round(run.receivedPowerFrac*100);
+  $("mRxPower").textContent = rx+"%";
+  $("bRxPower").style.width = clamp(rx,0,100)+"%";
+ 
+  $("mSnr").textContent = run.snrDb.toFixed(1)+" dB";
+  $("bSnr").style.width = clamp((run.snrDb+10)/40*100,2,100)+"%";
+ 
+  const berPct = run.ber*100;
+  $("mBer").textContent = berPct.toFixed(1)+"%";
+  $("bBer").style.width = clamp(berPct*4,2,100)+"%";
+ 
+  $("mDist").textContent = state.distance.toFixed(1)+" m";
+  $("bDist").style.width = clamp((state.distance/10)*100,4,100)+"%";
+ 
+  $("berTotal").textContent = run.n;
+  $("berCorrect").textContent = run.n-run.errors;
+  $("berErrors").textContent = run.errors;
+  $("berPct").textContent = berPct.toFixed(1)+"%";
+ 
+  $("pl-led-power").textContent = Math.round(state.ledPower)+"%";
+  $("pl-distance").textContent = state.distance.toFixed(1)+" m";
+  $("pl-rx-power").textContent = rx+"%";
+  $("pl-threshold").textContent = Math.round(state.threshold)+"%";
+}
+ 
+function recomputeAndRender(){
+  run = computeRun();
+  drawModPreview();
+  updateMetrics();
+  drawWave("txWaveCanvas", Array.from(run.optical.slice(0, Math.min(300, run.optical.length))), getCss('--optical'));
+  drawWave("rxWaveCanvas", Array.from(run.rxNoisy.slice(0, Math.min(300, run.rxNoisy.length))), getCss('--received'));
+  drawWave("recWaveCanvas", Array.from(run.recSamples.slice(0, Math.min(300, run.recSamples.length))), getCss('--electrical'), {threshold:(run.threshAbs)});
+  drawBerCurve();
+}
+ 
+/* ================= MAIN LOOP ================= */
+let lastTs = performance.now();
+function loop(ts){
+  const dt = Math.min(48, ts-lastTs);
+  lastTs = ts;
+ 
+  if(state.transmitting && !scopePaused && run){
+    state.playhead += (state.speed*dt)/1000;
+    if(state.playhead >= run.tx.length){
+      state.playhead = run.tx.length-1;
+      state.transmitting = false;
+      const success = run.errors===0;
+      $("resultTag").className = "status-tag "+(success?"ok":"bad");
+      $("resultTag").textContent = success ? "RECEIVED OK" : "ERRORS DETECTED";
+      $("recoveredMsg").textContent = `"${run.recoveredMessage}"`;
+      $("pl-status").textContent = success ? "ok" : "errors";
+    }
+  }
+ 
+  drawChannel(dt);
+  drawPipeline();
+  drawScope();
+  requestAnimationFrame(loop);
+}
+ 
+/* ================= INIT ================= */
+function init(){
+  initChannelCanvas();
+  refreshBits();
+  recomputeAndRender();
+  requestAnimationFrame(loop);
+  // Debounced resize: recomputing on every fired resize event (mobile browsers
+  // fire these while scrolling as the address bar hides/shows) is wasteful and
+  // was previously compounding the canvas-height bug described above.
+  let resizeTimer;
+  window.addEventListener("resize", ()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(recomputeAndRender, 150);
+  });
+}
+init();
+})();
+</script>
+</body>
+</html>
